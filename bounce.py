@@ -9,14 +9,16 @@ class Paddle:
         pd_w = 100
         pd_h = 20
         self.velocity = 15
+        self.move_flag = True
         self.id = c.create_rectangle(c.winfo_width() / 2 - pd_w / 2, c.winfo_height() - 2 * pd_h,
                                      c.winfo_width() / 2 + pd_w / 2, c.winfo_height() - pd_h,
                                      fill=color)
-        c.bind_all("<Left>", self.move_left)
-        c.bind_all("<Right>", self.move_right)
+        c.bind_all("<KeyPress-Left>", self.move_left)
+        c.bind_all("<KeyPress-Right>", self.move_right)
 
     def move_left(self, event):
         self._move(-self.velocity)
+        self.canvas.after()
 
     def move_right(self, event):
         self._move(self.velocity)
@@ -41,21 +43,18 @@ class Ball:
         self.canvas = c
         self.paddle = p
         self.alive = True
-        self.grace = 0
-        self.UPDATE_RATE = 5  # update frame every UPDATE_RATE ms
+        self.UPDATE_RATE = 2  # update frame every UPDATE_RATE ms
         self.c_height = c.winfo_height()
         self.c_width = c.winfo_width()
         size = 15
         # create ball in middle of field
         self.id = c.create_oval(self.c_width / 2, self.c_height / 2, self.c_width / 2 + size,
                                 self.c_height / 2 + size, fill=color)
-        xv_list = [-1.4, -1.3, -1.2, -1.1, -1, 1, 1.2, 1.3,
-                   1.4]  # list of initial xv. to make every game a bit different
+        xv_list = [-1.4, -1.3, -1.2, -1.1, -1, 1, 1.2, 1.3,1.4]  # list of initial xv. to make every game a bit different
         self.xv = random.sample(xv_list, 1)[0]  # x velocity
         self.yv = -1  # y velocity
 
     def draw(self):
-        self.canvas.move(self.id, self.xv, self.yv)
         pos = _pos_dict(self.canvas.coords(self.id))  # [x0, y0, x1, y1]
         # detect bounds collisions
         if pos["y1"] >= self.c_height:  # down
@@ -69,15 +68,15 @@ class Ball:
             self.xv = -self.xv  # left
 
         # detect paddle collision
-        # print(self.grace)
-        if self.grace > 0:
-            self.grace -= 1
         p_pos = self.paddle.position()
-        if pos["y1"] >= p_pos["y0"] and p_pos["x0"] <= pos["x1"] <= p_pos["x1"]:
-            if self.grace <= 0:
+        if pos["y1"] >= p_pos["y0"] and (
+                p_pos["x0"] <= pos["x1"] <= p_pos["x1"] or p_pos["x0"] <= pos["x0"] <= p_pos["x1"]):
+            if pos["y1"] == p_pos["y0"]:  # top collision
                 self.yv = -self.yv
-                self.grace = 30
+            if pos["y1"] > p_pos["y0"]:  # side collision
+                self.xv = -self.xv
 
+        self.canvas.move(self.id, self.xv, self.yv)
         # print(pos)
         if self.alive:
             self.canvas.after(self.UPDATE_RATE, self.draw)
